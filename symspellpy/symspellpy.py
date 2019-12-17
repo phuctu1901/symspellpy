@@ -88,7 +88,7 @@ class SymSpell(object):
     N = 1024908267229
     bigram_count_min = sys.maxsize
     def __init__(self, max_dictionary_edit_distance=2, prefix_length=7,
-                 count_threshold=1):
+                 count_threshold=1, is_thread_safe=False):
         if max_dictionary_edit_distance < 0:
             raise ValueError("max_dictionary_edit_distance cannot be "
                              "negative")
@@ -106,6 +106,7 @@ class SymSpell(object):
         self._prefix_length = prefix_length
         self._count_threshold = count_threshold
         self._distance_algorithm = DistanceAlgorithm.DAMERUAUOSA
+        self._is_thread_safe = is_thread_safe
         self._max_length = 0
         self._replaced_words = dict()
 
@@ -550,7 +551,8 @@ class SymSpell(object):
             candidates.append(phrase[: phrase_prefix_len])
         else:
             candidates.append(phrase)
-        distance_comparer = EditDistance(self._distance_algorithm)
+        distance_comparer = EditDistance(self._distance_algorithm,
+                                         self._is_thread_safe)
         while candidate_pointer < len(candidates):
             candidate = candidates[candidate_pointer]
             candidate_pointer += 1
@@ -767,7 +769,8 @@ class SymSpell(object):
                 split_by_space=split_phrase_by_space)
         suggestions = list()
         suggestion_parts = list()
-        distance_comparer = EditDistance(self._distance_algorithm)
+        distance_comparer = EditDistance(self._distance_algorithm,
+                                         self._is_thread_safe)
 
         # translate every item to its best suggestion, otherwise it
         # remains unchanged

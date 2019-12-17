@@ -454,6 +454,75 @@ class TestSymSpellPy(unittest.TestCase):
         self.assertEqual(10, results[0].distance)
         self.assertEqual(0, results[0].count)
 
+    def test_lookup_compound_thread_safe(self):
+        edit_distance_max = 2
+        prefix_length = 7
+        sym_spell = SymSpell(edit_distance_max, prefix_length, 1, True)
+        sym_spell.load_dictionary(self.dictionary_path, 0, 1)
+        sym_spell.load_bigram_dictionary(self.bigram_path, 0, 2)
+
+        typo = "whereis th elove"
+        correction = "where is the love"
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(2, results[0].distance)
+        self.assertEqual(585, results[0].count)
+
+        typo = "the bigjest playrs"
+        correction = "the biggest players"
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(2, results[0].distance)
+        self.assertEqual(34, results[0].count)
+
+        typo = "Can yu readthis"
+        correction = "can you read this"
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(3, results[0].distance)
+        self.assertEqual(11440, results[0].count)
+
+        typo = ("whereis th elove hehad dated forImuch of thepast who "
+                "couqdn'tread in sixthgrade and ins pired him")
+        correction = ("where is the love he had dated for much of the past "
+                      "who couldn't read in sixth grade and inspired him")
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(9, results[0].distance)
+        self.assertEqual(0, results[0].count)
+
+        typo = "in te dhird qarter oflast jear he hadlearned ofca sekretplan"
+        correction = ("in the third quarter of last year he had learned of a "
+                      "secret plan")
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(9, results[0].distance)
+        self.assertEqual(0, results[0].count)
+
+        typo = ("the bigjest playrs in te strogsommer film slatew ith plety "
+                "of funn")
+        correction = ("the biggest players in the strong summer film slate "
+                      "with plenty of fun")
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(9, results[0].distance)
+        self.assertEqual(0, results[0].count)
+
+        typo = ("Can yu readthis messa ge despite thehorible sppelingmsitakes")
+        correction = ("can you read this message despite the horrible "
+                      "spelling mistakes")
+        results = sym_spell.lookup_compound(typo, edit_distance_max)
+        self.assertEqual(1, len(results))
+        self.assertEqual(correction, results[0].term)
+        self.assertEqual(10, results[0].distance)
+        self.assertEqual(0, results[0].count)
+
     def test_lookup_compound_no_bigram(self):
         edit_distance_max = 2
         prefix_length = 7

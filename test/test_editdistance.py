@@ -68,14 +68,14 @@ class TestEditDistance(unittest.TestCase):
 
     def test_abstract_distance_comparer(self):
         with pytest.raises(NotImplementedError) as excinfo:
-            comparer = AbstractDistanceComparer()
+            comparer = AbstractDistanceComparer(False)
             __ = comparer.distance("string_1", "string_2", 10)
         self.assertEqual("Should have implemented this", str(excinfo.value))
 
     def test_levenshtein_match_ref_max_0(self):
         max_distance = 0
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_levenshtein(s1, s2, max_distance),
@@ -84,7 +84,7 @@ class TestEditDistance(unittest.TestCase):
     def test_levenshtein_match_ref_max_1(self):
         max_distance = 1
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_levenshtein(s1, s2, max_distance),
@@ -93,7 +93,7 @@ class TestEditDistance(unittest.TestCase):
     def test_levenshtein_match_ref_max_3(self):
         max_distance = 3
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 print(s1, s2)
@@ -103,7 +103,7 @@ class TestEditDistance(unittest.TestCase):
     def test_levenshtein_match_ref_max_huge(self):
         max_distance = sys.maxsize
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_levenshtein(s1, s2, max_distance),
@@ -114,7 +114,7 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         long_string = "long_string"
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         distance = comparer.distance(short_string, None, max_distance)
         self.assertEqual(len(short_string), distance)
 
@@ -135,7 +135,7 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         long_string = "long_string"
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
         distance = comparer.distance(short_string, None, max_distance_1)
         self.assertEqual(-1, distance)
 
@@ -180,7 +180,120 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         very_long_string = "very_long_string"
 
-        comparer = Levenshtein()
+        comparer = Levenshtein(False)
+        distance = comparer.distance(short_string, very_long_string,
+                                     max_distance)
+        self.assertEqual(-1, distance)
+
+    def test_levenshtein_match_ref_max_0_thread_safe(self):
+        max_distance = 0
+
+        comparer = Levenshtein(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_levenshtein(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_levenshtein_match_ref_max_1_thread_safe(self):
+        max_distance = 1
+
+        comparer = Levenshtein(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_levenshtein(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_levenshtein_match_ref_max_3_thread_safe(self):
+        max_distance = 3
+
+        comparer = Levenshtein(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                print(s1, s2)
+                self.assertEqual(get_levenshtein(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_levenshtein_match_ref_max_huge_thread_safe(self):
+        max_distance = sys.maxsize
+
+        comparer = Levenshtein(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_levenshtein(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_levenshtein_null_distance_thread_safe(self):
+        max_distance = 10
+        short_string = "string"
+        long_string = "long_string"
+
+        comparer = Levenshtein(True)
+        distance = comparer.distance(short_string, None, max_distance)
+        self.assertEqual(len(short_string), distance)
+
+        distance = comparer.distance(long_string, None, max_distance)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance)
+        self.assertEqual(len(short_string), distance)
+
+        distance = comparer.distance(None, long_string, max_distance)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance)
+        self.assertEqual(0, distance)
+
+    def test_levenshtein_negative_max_distance_thread_safe(self):
+        max_distance_1 = 0
+        short_string = "string"
+        long_string = "long_string"
+
+        comparer = Levenshtein(True)
+        distance = comparer.distance(short_string, None, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(long_string, None, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, long_string, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance_1)
+        self.assertEqual(0, distance)
+
+        distance = comparer.distance(short_string, short_string,
+                                     max_distance_1)
+        self.assertEqual(0, distance)
+
+        max_distance_2 = -1
+        distance = comparer.distance(short_string, None, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(long_string, None, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, long_string, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance_2)
+        self.assertEqual(0, distance)
+
+        distance = comparer.distance(short_string, short_string,
+                                     max_distance_2)
+        self.assertEqual(0, distance)
+
+    def test_levenshtein_very_long_string_2_thread_safe(self):
+        max_distance = 5
+        short_string = "string"
+        very_long_string = "very_long_string"
+
+        comparer = Levenshtein(True)
         distance = comparer.distance(short_string, very_long_string,
                                      max_distance)
         self.assertEqual(-1, distance)
@@ -188,7 +301,7 @@ class TestEditDistance(unittest.TestCase):
     def test_damerau_osa_match_ref_max_0(self):
         max_distance = 0
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_damerau_osa(s1, s2, max_distance),
@@ -197,7 +310,7 @@ class TestEditDistance(unittest.TestCase):
     def test_damerau_osa_match_ref_max_1(self):
         max_distance = 1
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_damerau_osa(s1, s2, max_distance),
@@ -206,7 +319,7 @@ class TestEditDistance(unittest.TestCase):
     def test_damerau_osa_match_ref_max_3(self):
         max_distance = 3
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 print(s1, s2)
@@ -216,7 +329,7 @@ class TestEditDistance(unittest.TestCase):
     def test_damerau_osa_match_ref_max_huge(self):
         max_distance = sys.maxsize
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         for s1 in self.test_strings:
             for s2 in self.test_strings:
                 self.assertEqual(get_damerau_osa(s1, s2, max_distance),
@@ -227,7 +340,7 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         long_string = "long_string"
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         distance = comparer.distance(short_string, None, max_distance)
         self.assertEqual(len(short_string), distance)
 
@@ -248,7 +361,7 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         long_string = "long_string"
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
         distance = comparer.distance(short_string, None, max_distance_1)
         self.assertEqual(-1, distance)
 
@@ -293,7 +406,120 @@ class TestEditDistance(unittest.TestCase):
         short_string = "string"
         very_long_string = "very_long_string"
 
-        comparer = DamerauOsa()
+        comparer = DamerauOsa(False)
+        distance = comparer.distance(short_string, very_long_string,
+                                     max_distance)
+        self.assertEqual(-1, distance)
+
+    def test_damerau_osa_match_ref_max_0_thread_safe(self):
+        max_distance = 0
+
+        comparer = DamerauOsa(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_damerau_osa(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_damerau_osa_match_ref_max_1_thread_safe(self):
+        max_distance = 1
+
+        comparer = DamerauOsa(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_damerau_osa(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_damerau_osa_match_ref_max_3_thread_safe(self):
+        max_distance = 3
+
+        comparer = DamerauOsa(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                print(s1, s2)
+                self.assertEqual(get_damerau_osa(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_damerau_osa_match_ref_max_huge_thread_safe(self):
+        max_distance = sys.maxsize
+
+        comparer = DamerauOsa(True)
+        for s1 in self.test_strings:
+            for s2 in self.test_strings:
+                self.assertEqual(get_damerau_osa(s1, s2, max_distance),
+                                 comparer.distance(s1, s2, max_distance))
+
+    def test_damerau_osa_null_distance_thread_safe(self):
+        max_distance = 10
+        short_string = "string"
+        long_string = "long_string"
+
+        comparer = DamerauOsa(True)
+        distance = comparer.distance(short_string, None, max_distance)
+        self.assertEqual(len(short_string), distance)
+
+        distance = comparer.distance(long_string, None, max_distance)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance)
+        self.assertEqual(len(short_string), distance)
+
+        distance = comparer.distance(None, long_string, max_distance)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance)
+        self.assertEqual(0, distance)
+
+    def test_damerau_osa_negative_max_distance_thread_safe(self):
+        max_distance_1 = 0
+        short_string = "string"
+        long_string = "long_string"
+
+        comparer = DamerauOsa(True)
+        distance = comparer.distance(short_string, None, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(long_string, None, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, long_string, max_distance_1)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance_1)
+        self.assertEqual(0, distance)
+
+        distance = comparer.distance(short_string, short_string,
+                                     max_distance_1)
+        self.assertEqual(0, distance)
+
+        max_distance_2 = -1
+        distance = comparer.distance(short_string, None, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(long_string, None, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, short_string, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, long_string, max_distance_2)
+        self.assertEqual(-1, distance)
+
+        distance = comparer.distance(None, None, max_distance_2)
+        self.assertEqual(0, distance)
+
+        distance = comparer.distance(short_string, short_string,
+                                     max_distance_2)
+        self.assertEqual(0, distance)
+
+    def test_damerau_osa_very_long_string_2_thread_safe(self):
+        max_distance = 5
+        short_string = "string"
+        very_long_string = "very_long_string"
+
+        comparer = DamerauOsa(True)
         distance = comparer.distance(short_string, very_long_string,
                                      max_distance)
         self.assertEqual(-1, distance)

@@ -35,12 +35,12 @@ class EditDistance(object):
     ValueError
         If `algorithm` specifies an invalid distance algorithm.
     """
-    def __init__(self, algorithm):
+    def __init__(self, algorithm, is_thread_safe=False):
         self._algorithm = algorithm
         if algorithm == DistanceAlgorithm.LEVENSHTEIN:
-            self._distance_comparer = Levenshtein()
+            self._distance_comparer = Levenshtein(is_thread_safe)
         elif algorithm == DistanceAlgorithm.DAMERUAUOSA:
-            self._distance_comparer = DamerauOsa()
+            self._distance_comparer = DamerauOsa(is_thread_safe)
         else:
             raise ValueError("Unknown distance algorithm")
 
@@ -67,6 +67,9 @@ class EditDistance(object):
 
 class AbstractDistanceComparer(object):
     """An interface to compute relative distance between two strings"""
+    def __init__(self, is_thread_safe):
+        self.is_thread_safe = is_thread_safe
+
     def distance(self, string_1, string_2, max_distance):
         """Return a measure of the distance between two strings.
 
@@ -102,7 +105,8 @@ class Levenshtein(AbstractDistanceComparer):
     ----------
     _base_char_1_costs : numpy.ndarray
     """
-    def __init__(self):
+    def __init__(self, is_thread_safe):
+        super().__init__(is_thread_safe)
         self._base_char_1_costs = np.zeros(0, dtype=np.int32)
 
     def distance(self, string_1, string_2, max_distance):
@@ -145,17 +149,25 @@ class Levenshtein(AbstractDistanceComparer):
         if len_1 == 0:
             return len_2 if len_2 <= max_distance else -1
 
-        if len_2 > len(self._base_char_1_costs):
-            self._base_char_1_costs = np.zeros(len_2, dtype=np.int32)
-        if max_distance < len_2:
-            return self._distance_max(string_1, string_2, len_1, len_2,
-                                      start, max_distance,
-                                      self._base_char_1_costs)
-        return self._distance(string_1, string_2, len_1, len_2, start,
-                              self._base_char_1_costs)
+        if self.is_thread_safe:
+            if max_distance < len_2:
+                return self._distance_max(string_1, string_2, len_1, len_2,
+                                          start, max_distance,
+                                          np.zeros(len_2, dtype=np.int32))
+            return self._distance(string_1, string_2, len_1, len_2, start,
+                                  np.zeros(len_2, dtype=np.int32))
+        else:
+            if len_2 > len(self._base_char_1_costs):
+                self._base_char_1_costs = np.zeros(len_2, dtype=np.int32)
+            if max_distance < len_2:
+                return self._distance_max(string_1, string_2, len_1, len_2,
+                                          start, max_distance,
+                                          self._base_char_1_costs)
+            return self._distance(string_1, string_2, len_1, len_2, start,
+                                  self._base_char_1_costs)
 
-    def _distance(self, string_1, string_2, len_1, len_2, start,
-                  char_1_costs):
+    @staticmethod
+    def _distance(string_1, string_2, len_1, len_2, start, char_1_costs):
         """Internal implementation of the core Levenshtein algorithm.
 
         **From**: https://github.com/softwx/SoftWx.Match
@@ -180,8 +192,9 @@ class Levenshtein(AbstractDistanceComparer):
                 char_1_costs[j] = above_char_cost = current_cost
         return current_cost
 
-    def _distance_max(self, string_1, string_2, len_1, len_2, start,
-                      max_distance, char_1_costs):
+    @staticmethod
+    def _distance_max(string_1, string_2, len_1, len_2, start, max_distance,
+                      char_1_costs):
         """Internal implementation of the core Levenshtein algorithm
         that accepts a max_distance.
 
@@ -232,7 +245,8 @@ class DamerauOsa(AbstractDistanceComparer):
     _base_prev_char_1_costs : numpy.ndarray
 
     """
-    def __init__(self):
+    def __init__(self, is_thread_safe):
+        super().__init__(is_thread_safe)
         self._base_char_1_costs = np.zeros(0, dtype=np.int32)
         self._base_prev_char_1_costs = np.zeros(0, dtype=np.int32)
 
@@ -276,20 +290,31 @@ class DamerauOsa(AbstractDistanceComparer):
         if len_1 == 0:
             return len_2 if len_2 <= max_distance else -1
 
-        if len_2 > len(self._base_char_1_costs):
-            self._base_char_1_costs = np.zeros(len_2, dtype=np.int32)
-            self._base_prev_char_1_costs = np.zeros(len_2, dtype=np.int32)
-        if max_distance < len_2:
-            return self._distance_max(string_1, string_2, len_1, len_2,
-                                      start, max_distance,
-                                      self._base_char_1_costs,
-                                      self._base_prev_char_1_costs)
-        return self._distance(string_1, string_2, len_1, len_2, start,
-                              self._base_char_1_costs,
-                              self._base_prev_char_1_costs)
+        if self.is_thread_safe:
+            if max_distance < len_2:
+                return self._distance_max(string_1, string_2, len_1, len_2,
+                                          start, max_distance,
+                                          np.zeros(len_2, dtype=np.int32),
+                                          np.zeros(len_2, dtype=np.int32))
+            return self._distance(string_1, string_2, len_1, len_2, start,
+                                  np.zeros(len_2, dtype=np.int32),
+                                  np.zeros(len_2, dtype=np.int32))
+        else:
+            if len_2 > len(self._base_char_1_costs):
+                self._base_char_1_costs = np.zeros(len_2, dtype=np.int32)
+                self._base_prev_char_1_costs = np.zeros(len_2, dtype=np.int32)
+            if max_distance < len_2:
+                return self._distance_max(string_1, string_2, len_1, len_2,
+                                          start, max_distance,
+                                          self._base_char_1_costs,
+                                          self._base_prev_char_1_costs)
+            return self._distance(string_1, string_2, len_1, len_2, start,
+                                  self._base_char_1_costs,
+                                  self._base_prev_char_1_costs)
 
-    def _distance(self, string_1, string_2, len_1, len_2, start,
-                  char_1_costs, prev_char_1_costs):
+    @staticmethod
+    def _distance(string_1, string_2, len_1, len_2, start, char_1_costs,
+                  prev_char_1_costs):
         """Internal implementation of the core Damerau-Levenshtein,
         optimal string alignment algorithm.
 
@@ -330,8 +355,9 @@ class DamerauOsa(AbstractDistanceComparer):
                 char_1_costs[j] = above_char_cost = current_cost
         return current_cost
 
-    def _distance_max(self, string_1, string_2, len_1, len_2, start,
-                      max_distance, char_1_costs, prev_char_1_costs):
+    @staticmethod
+    def _distance_max(string_1, string_2, len_1, len_2, start, max_distance,
+                      char_1_costs, prev_char_1_costs):
         """Internal implementation of the core Damerau-Levenshtein,
         optimal string alignment algorithm that accepts a max_distance.
 
