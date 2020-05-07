@@ -87,7 +87,7 @@ class SymSpell(object):
     # truncated or filtered
     N = 1024908267229
     bigram_count_min = sys.maxsize
-    def __init__(self, max_dictionary_edit_distance=2, prefix_length=7,
+    def __init__(self, max_dictionary_edit_distance=10, prefix_length=15,
                  count_threshold=1):
         if max_dictionary_edit_distance < 0:
             raise ValueError("max_dictionary_edit_distance cannot be "
@@ -297,6 +297,60 @@ class SymSpell(object):
                         self.create_dictionary_entry(key, count)
         return True
 
+    def create_address_list(self, corpus, encoding=None):
+        """Load multiple dictionary words from a file containing plain
+        text.
+
+        **NOTE**: Merges with any dictionary data already loaded.
+
+        Parameters
+        ----------
+        corpus : str
+            The path+filename of the file.
+        encoding : str, optional
+            Text encoding of the corpus file.
+
+        Returns
+        -------
+        bool
+            True if file loaded, or False if file not found.
+        """
+        if not os.path.exists(corpus):
+            return False
+        with open(corpus, "r", encoding=encoding) as infile:
+            for line in infile:
+                # print("Noi dung dong nay:", line)
+                # for key in self._parse_words(line):
+                #     print("Noi dung la: ", key)
+                self.create_dictionary_entry(line.rstrip(),1)
+        return True
+
+    # create_address_list_from_data(
+    def create_address_list_from_data(self, data, encoding=None):
+        """Load multiple dictionary words from a file containing plain
+        text.
+
+        **NOTE**: Merges with any dictionary data already loaded.
+
+        Parameters
+        ----------
+        corpus : str
+            The path+filename of the file.
+        encoding : str, optional
+            Text encoding of the corpus file.
+
+        Returns
+        -------
+        bool
+            True if file loaded, or False if file not found.
+        """
+        
+        for line in data:
+                # print("Noi dung dong nay:", line)
+                # for key in self._parse_words(line):
+                #     print("Noi dung la: ", key)
+            self.create_dictionary_entry(line,1)
+        return True
     def create_dictionary(self, corpus, encoding=None):
         """Load multiple dictionary words from a file containing plain
         text.
@@ -315,17 +369,14 @@ class SymSpell(object):
         bool
             True if file loaded, or False if file not found.
         """
-        if isinstance(corpus, str):
-            if not os.path.exists(corpus):
-                return False
-            with open(corpus, "r", encoding=encoding) as infile:
-                for line in infile:
-                    for key in self._parse_words(line):
-                        self.create_dictionary_entry(key, 1)
-        else:
-            for line in corpus:
+        if not os.path.exists(corpus):
+            return False
+        with open(corpus, "r", encoding=encoding) as infile:
+            for line in infile:
+                # print("Noi dung dong nay:", line)
                 for key in self._parse_words(line):
-                    self.create_dictionary_entry(key, 1)
+                #     print("Noi dung la: ", key)
+                    self.create_dictionary_entry(key,1)
         return True
 
     def save_pickle_stream(self, stream):
@@ -468,10 +519,7 @@ class SymSpell(object):
         suggestion_count = 0
         if phrase in self._words:
             suggestion_count = self._words[phrase]
-            if transfer_casing:
-                suggestions.append(SuggestItem(original_phrase, 0, suggestion_count))
-            else:
-                suggestions.append(SuggestItem(phrase, 0, suggestion_count))
+            suggestions.append(SuggestItem(phrase, 0, suggestion_count))
             # early exit - return exact match, unless caller wants all
             # matches
             if verbosity != Verbosity.ALL:

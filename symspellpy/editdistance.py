@@ -8,6 +8,8 @@ import numpy as np
 
 import symspellpy.helpers as helpers
 
+import unicodedata
+
 class DistanceAlgorithm(Enum):
     """Supported edit distance algorithms"""
     LEVENSHTEIN = 0  #: Levenshtein algorithm.
@@ -45,6 +47,8 @@ class EditDistance(object):
             raise ValueError("Unknown distance algorithm")
 
     def compare(self, string_1, string_2, max_distance):
+        string_1 = unicodedata.normalize('NFD', string_1)
+        string_2 = unicodedata.normalize('NFD', string_2)
         """Compare a string to the base string to determine the edit
         distance, using the previously selected algorithm.
 
@@ -52,8 +56,10 @@ class EditDistance(object):
         ----------
         string_1 : str
             Base string.
+            # String đầu vào
         string_2 : str
             The string to compare.
+            # String trong từ điển
         max_distance : int
             The maximum distance allowed.
 
@@ -62,8 +68,11 @@ class EditDistance(object):
         int
             The edit distance (or -1 if `max_distance` exceeded).
         """
-        return self._distance_comparer.distance(string_1, string_2,
+        distance = self._distance_comparer.distance(string_1, string_2,
                                                 max_distance)
+        if (string_1 == "Hà Nội"):
+            print(string_1 , type(string_1), string_2, type(string_2), distance)
+        return distance
 
 class AbstractDistanceComparer(object):
     """An interface to compute relative distance between two strings"""
@@ -295,12 +304,15 @@ class DamerauOsa(AbstractDistanceComparer):
 
         **From**: https://github.com/softwx/SoftWx.Match
         """
+        
         char_1_costs = np.asarray([j + 1 for j in range(len_2)])
         char_1 = " "
         current_cost = 0
         for i in range(len_1):
             prev_char_1 = char_1
             char_1 = string_1[start + i]
+            if (string_1=="Hà Nội"):
+                print(char_1)
             char_2 = " "
             left_char_cost = above_char_cost = i
             next_trans_cost = 0
@@ -328,6 +340,7 @@ class DamerauOsa(AbstractDistanceComparer):
                         # transposition
                         current_cost = this_trans_cost + 1
                 char_1_costs[j] = above_char_cost = current_cost
+
         return current_cost
 
     def _distance_max(self, string_1, string_2, len_1, len_2, start,
